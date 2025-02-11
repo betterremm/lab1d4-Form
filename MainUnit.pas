@@ -53,6 +53,9 @@ Type
         Procedure SGSecArrKeyPress(Sender: TObject; Var Key: Char);
         Procedure SGSecArrSetEditText(Sender: TObject; ACol, ARow: LongInt; Const Value: String);
         Procedure SGFirstArrSetEditText(Sender: TObject; ACol, ARow: LongInt; Const Value: String);
+        Procedure EditKeyPress(Sender: TObject; Var Key: Char);
+    procedure EditChange(Sender: TObject);
+    procedure BtnArrClick(Sender: TObject);
     Private
         FirstFillAmnt: Integer;
         SecondFillAmnt: Integer;
@@ -81,6 +84,61 @@ Var
     TempNum, I, K, D: Integer;
 Begin
 
+End;
+
+procedure TMainForm.BtnArrClick(Sender: TObject);
+Var
+Size, I : Integer;
+begin
+    SGFirstArr.Visible := True;
+    SGSecArr.Visible := True;
+    Size := StrToInt(Edit.Text);
+    SGFirstArr.ColCount := Size + 1;
+    SGSecArr.ColCount := Size + 1;
+    SGFirstArr.Cells[0,0] := 'a';
+    SGFirstArr.Cells[0,1] := 'Значение:';
+    For I := 1 To Size Do
+        SGFirstArr.Cells[I,0] := IntToStr(I) + '-й';
+
+
+    SGSecArr.Cells[0,0] := 'b';
+    SGSecArr.Cells[0,1] := 'Значение:';
+    For I := 1 To Size Do
+        SGSecArr.Cells[I,0] := IntToStr(I) + '-й';
+
+
+
+
+
+
+end;
+
+procedure TMainForm.EditChange(Sender: TObject);
+begin
+
+    If (Edit.Text <> '') And (Edit.Text <> '0') Then
+    Begin
+        If StrToInt(Edit.Text) > MAXAMOUNT Then
+        Begin
+            Edit.Text := '30';
+            Edit.SelStart := Length(Edit.Text)
+        End
+        Else
+            If IntToStr(StrToInt(Edit.Text)) <> Edit.Text Then
+            Begin
+                Edit.Text := IntToStr(StrToInt(Edit.Text));
+                Edit.SelStart := Length(Edit.Text)
+            End;
+        BtnArr.Enabled := True;
+    End
+    Else
+        BtnArr.Enabled := False;
+end;
+
+Procedure TMainForm.EditKeyPress(Sender: TObject; Var Key: Char);
+Begin
+    If Not(Key In TAllowedAmnt) Then
+        Key := #0;
 End;
 
 Procedure TMainForm.FormCloseQuery(Sender: TObject; Var CanClose: Boolean);
@@ -118,12 +176,15 @@ Begin
     Constraints.MinHeight := Height;
     Constraints.MaxHeight := Height;
     BtnAnswer.Enabled := False;
-    //IsFirstEditFilled := False;
-    //IsSecondEditFilled := False;
     IsFileSaved := False;
     NSave.Enabled := False;
     SGAnswer.Visible := False;
     SGAnswer.Enabled := True;
+    FirstFillAmnt := 0;
+    SecondFillAmnt := 0;
+    BtnArr.Enabled := False;
+    SGFirstArr.Visible := False;
+    SGSecArr.Visible := False;
 End;
 
 Function TMainForm.FormHelp(Command: Word; Data: THelpEventData; Var CallHelp: Boolean): Boolean;
@@ -271,9 +332,9 @@ Begin
 
     SGAnswer.Visible := False;
     NSave.Enabled := False;
-    If (Value <> '') Then
+    If (Value <> '') And (Value <> '-') Then
     Begin
-        If SGFirstArr.Cells[ACol, ARow] = '' Then
+        If (SGSecArr.Cells[ACol, ARow] = '') Or (SGSecArr.Cells[ACol, ARow] = '-') Then
             Inc(FirstFillAmnt);
 
         If StrToInt(Value) > MAXNUM Then
@@ -289,7 +350,7 @@ Begin
 
     End
     Else
-        If SGSecArr.Cells[ACol, ARow] = '' Then
+        If (SGFirstArr.Cells[ACol, ARow] <> '') And (SGFirstArr.Cells[ACol, ARow] <> '-') Then
             Dec(FirstFillAmnt);
 
     If (FirstFillAmnt = SGFirstArr.ColCount - 1) And (SecondFillAmnt = SGSecArr.ColCount - 1) Then
@@ -311,13 +372,20 @@ Begin
 End;
 
 Procedure TMainForm.SGSecArrSetEditText(Sender: TObject; ACol, ARow: LongInt; Const Value: String);
+Var
+A: Integer;
 Begin
 
     SGAnswer.Visible := False;
     NSave.Enabled := False;
-    If (Value <> '') Then
+    If (Value <> '') And (Value <> '-') Then
     Begin
-        If SGSecArr.Cells[ACol, ARow] = '' Then
+        {$I-}
+        If (IntToStr(StrToInt(Value)) = Value) {$I+} And (IOResult = 0) Then
+
+        Begin
+
+        If (SGSecArr.Cells[ACol, ARow] = '') Or (SGSecArr.Cells[ACol, ARow] = '-') Then
             Inc(SecondFillAmnt);
 
         If StrToInt(Value) > MAXNUM Then
@@ -330,16 +398,16 @@ Begin
             Else
                 If IntToStr(StrToInt(Value)) <> Value Then
                     SGSecArr.Cells[ACol, ARow] := IntToStr(StrToInt(Value));
+        End;
 
     End
     Else
-        If SGSecArr.Cells[ACol, ARow] = '' Then
+        If (SGSecArr.Cells[ACol, ARow] <> '') And (SGSecArr.Cells[ACol, ARow] <> '-') Then
             Dec(SecondFillAmnt);
 
-    If (SecondFillAmnt = SGSecArr.ColCount - 1) And (FirstFillAmnt = SGFirstArr.ColCount - 1) Then
-        BtnAnswer.Enabled := True
-    Else
-        BtnAnswer.Enabled := False;
-End;
+    If (SecondFillAmnt = SGSecArr.ColCount - 1) And (FirstFillAmnt = SGFirstArr.ColCount - 1)Then
+        BtnAnswer.Enabled := True;
 
+
+End;
 End.
