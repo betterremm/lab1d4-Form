@@ -3,7 +3,7 @@ object MainForm: TMainForm
   Top = 1108
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
-  Caption = #1051#1072#1073#1086#1088#1072#1090#1086#1088#1085#1072#1103' 1.2 '#1056#1072#1081#1095#1091#1082' '#1052#1080#1093#1072#1080#1083' 451004'
+  Caption = #1051#1072#1073#1086#1088#1072#1090#1086#1088#1085#1072#1103' 1.4 '#1056#1072#1081#1095#1091#1082' '#1052#1080#1093#1072#1080#1083' 451004'
   ClientHeight = 438
   ClientWidth = 1026
   Color = clBtnFace
@@ -36,17 +36,17 @@ object MainForm: TMainForm
     ParentFont = False
   end
   object BtnAnswer: TButton
-    Left = 480
+    Left = 424
     Top = 256
-    Width = 97
+    Width = 193
     Height = 49
-    Caption = #1055#1086#1083#1091#1095#1080#1090#1100' '#13#10#1085#1086#1074#1099#1077#13#10#1084#1072#1089#1089#1080#1074#1099
+    Caption = #1055#1086#1083#1091#1095#1080#1090#1100' '#13#10#1085#1086#1074#1099#1077#13#10' '#1084#1072#1089#1089#1080#1074#1099
     TabOrder = 4
     OnClick = BtnAnswerClick
   end
   object SGAnswer: TStringGrid
     Left = 633
-    Top = 232
+    Top = 240
     Width = 320
     Height = 89
     Enabled = False
@@ -69,6 +69,7 @@ object MainForm: TMainForm
     TabOrder = 0
     TextHint = '1-30'
     OnChange = EditChange
+    OnContextPopup = EditContextPopup
     OnKeyPress = EditKeyPress
   end
   object SGFirstArr: TStringGrid

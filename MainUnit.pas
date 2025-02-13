@@ -19,7 +19,6 @@ Uses
     Vcl.Grids;
 
 Type
-    TCustomGridAccess = Class(TCustomGrid);
 
     TMainForm = Class(TForm)
         MainMenu: TMainMenu;
@@ -58,6 +57,7 @@ Type
         Procedure EditKeyPress(Sender: TObject; Var Key: Char);
         Procedure EditChange(Sender: TObject);
         Procedure BtnArrClick(Sender: TObject);
+        Procedure EditContextPopup(Sender: TObject; MousePos: TPoint; Var Handled: Boolean);
     Private
         IsFirstFilled, IsSecondFilled, IsFileSaved: Boolean;
         FirstAnswerArray: Array Of Integer;
@@ -69,6 +69,7 @@ Const
     TAllowedKeys: Set Of Char = ['0' .. '9', #8, '-', #13];
     TAllowedAmnt: Set Of Char = ['0' .. '9', #8];
     MAXAMOUNT = 30;
+    MINAMOUNT = 1;
     MAXNUM = 10000000;
     MINNUM = -10000000;
 
@@ -110,6 +111,7 @@ Begin
             If (Value[1] = '0') Or (Value[1] = '-') And (Value[2] = '0') Then
             Begin
                 Delete(Value, 1, 1);
+                Value := IntToStr(StrToInt(Value));
                 IsRight := False;
             End
             Else
@@ -171,23 +173,33 @@ End;
 Procedure TMainForm.EditChange(Sender: TObject);
 Begin
 
-    If (Edit.Text <> '') And (Edit.Text <> '0') Then
+    If (Edit.Text <> '') Then
     Begin
         If StrToInt(Edit.Text) > MAXAMOUNT Then
         Begin
-            Edit.Text := '30';
+            Edit.Text := IntToStr(MAXAMOUNT);
             Edit.SelStart := Length(Edit.Text)
         End
         Else
-            If IntToStr(StrToInt(Edit.Text)) <> Edit.Text Then
+            If StrToInt(Edit.Text) < MINAMOUNT Then
             Begin
-                Edit.Text := IntToStr(StrToInt(Edit.Text));
+                Edit.Text := IntToStr(MINAMOUNT);
                 Edit.SelStart := Length(Edit.Text)
             End;
+        If IntToStr(StrToInt(Edit.Text)) <> Edit.Text Then
+        Begin
+            Edit.Text := IntToStr(StrToInt(Edit.Text));
+            Edit.SelStart := Length(Edit.Text)
+        End;
         BtnArr.Enabled := True;
     End
     Else
         BtnArr.Enabled := False;
+End;
+
+Procedure TMainForm.EditContextPopup(Sender: TObject; MousePos: TPoint; Var Handled: Boolean);
+Begin
+    Handled := True
 End;
 
 Procedure TMainForm.EditKeyPress(Sender: TObject; Var Key: Char);
@@ -241,7 +253,8 @@ Begin
     SGFirstArr.Visible := False;
     SGSecArr.Visible := False;
     SGAnswer.Cells[0, 1] := 'Новый a';
-    SGAnswer.Cells[0, 2] := 'Новый b'
+    SGAnswer.Cells[0, 2] := 'Новый b';
+//    SGFirstArr.OnSelectCell := @DisableEditorContextMenu;
 End;
 
 Function TMainForm.FormHelp(Command: Word; Data: THelpEventData; Var CallHelp: Boolean): Boolean;
@@ -269,8 +282,8 @@ Procedure TMainForm.NOpenClick(Sender: TObject);
 Var
     FilePath: String;
     InputFile: TextFile;
-    EOFCounter: Integer;
-    Num1, Num2, ErrNum: Integer;
+    I, EOFCounter: Integer;
+    NumSize, NumTemp, ErrNum: Integer;
 Begin
     If OpenDialog.Execute() Then
     Begin
@@ -288,22 +301,35 @@ Begin
             If ErrNum = 0 Then
             Begin
                 {$I-}
-                Read(InputFile, Num1);
+                ReadLn(InputFile, NumSize);
                 If EOF(InputFile) Then
                     Inc(EofCounter);
-                Read(InputFile, Num2);
+                Edit.Text := IntToStr(NumSize);
+                if BtnArr.Enabled then
+                    BtnArr.Click;
+
+                For I := 1 To SGFirstArr.ColCount - 1 Do
+                Begin
+                Read(InputFile, NumTemp);
                 If EOF(InputFile) Then
                     Inc(EofCounter);
+                SgFirstArr.Cells[I,1] := IntToStr(NumTemp)
+                End;
+
+                For I := 1 To SGSecArr.ColCount - 1 Do
+                Begin
+                Read(InputFile, NumTemp);
+                If EOF(InputFile) Then
+                    Inc(EofCounter);
+                SGSecArr.Cells[I,1] := IntToStr(NumTemp)
+                End;
+
                 {$I+}
                 ErrNum := IOResult;
                 Case ErrNum Of
                     0:
                         Case EOFCounter Of
 
-                            1:
-                                Begin
-                                    //Pizdez
-                                End;
                             2:
                                 MessageBox(MainForm.Handle, 'Введите путь к другому файлу', 'В файле недостаточно информации',
                                     MB_ICONWARNING + MB_OK);
@@ -349,18 +375,34 @@ Begin
             {$I+}
             If IOResult = 0 Then
             Begin
-                //Write(OutputFile, 'Коэффициент k - ');
-                //WriteLn(OutputFile, EdKKoef.Text);
-                //Write(OutputFile, 'Коэффициент d - ');
-                //WriteLn(OutputFile, EdDKoef.Text);
-                //Write(OutputFile, 'Последовательность: ');  тоже пиздец
-                //Write(OutputFile, AnswerArray[0]);
-                //For I := 1 To High(AnswerArray) Do
-                //Begin
-                //Write(OutputFile, ', ');
-                //Write(OutputFile, AnswerArray[I]);
-                //End;
-                Write(OutputFile, '.');
+                Write(OutputFile, 'Первый массив: ');
+                For I := 1 To SGFirstArr.ColCount - 1 Do
+                Begin
+                    Write(OutputFile, SGFirstArr.Cells[I, 1]);
+                    Write(OutputFile, ' ')
+                End;
+                WriteLn(OutputFile);
+                Write(OutputFile, 'Второй массив: ');
+                For I := 1 To SGSecArr.ColCount - 1 Do
+                Begin
+                    Write(OutputFile, SGFirstArr.Cells[I, 1]);
+                    Write(OutputFile, ' ')
+                End;
+                WriteLn(OutputFile);
+                Write(OutputFile, 'Первый новый массив: ');
+                For I := 1 To SGAnswer.ColCount - 1 Do
+                Begin
+                    Write(OutputFile, SGAnswer.Cells[I, 1]);
+                    Write(OutputFile, ' ')
+                End;
+                WriteLn(OutputFile);
+                Write(OutputFile, 'Второй новый массив: ');
+                For I := 1 To SGAnswer.ColCount - 1 Do
+                Begin
+                    Write(OutputFile, SGAnswer.Cells[I, 2]);
+                    Write(OutputFile, ' ')
+                End;
+                WriteLn(OutputFile);
                 IsFileSaved := True;
             End
             Else
@@ -390,10 +432,11 @@ Var
 Begin
     NewValue := Value;
     If CheckSG(1, NewValue) Then
-        SGFirstArr.Cells[ACol, ARow] := NewValue
+        SGFirstArr.Cells[ACol, ARow] := NewValue;
+    If (Value <> '') And (Value <> '-') And CheckFullSg(SGFirstArr) Then
+        IsFirstFilled := True
     Else
-        If (Value <> '') And (Value <> '-') And CheckFullSg(SGFirstArr) Then
-            IsFirstFilled := True;
+        IsFirstFilled := False;
 
     If IsFirstFilled And IsSecondFilled Then
         BtnAnswer.Enabled := True
@@ -420,10 +463,12 @@ Var
 Begin
     NewValue := Value;
     If CheckSG(1, NewValue) Then
-        SGSecArr.Cells[ACol, ARow] := NewValue
+        SGSecArr.Cells[ACol, ARow] := NewValue;
+
+    If (Value <> '') And (Value <> '-') And CheckFullSg(SGSecArr) Then
+        IsSecondFilled := True
     Else
-        If (Value <> '') And (Value <> '-') And CheckFullSg(SGSecArr) Then
-            IsSecondFilled := True;
+        IsSecondFilled := False;
 
     If IsSecondFilled And IsFirstFilled Then
         BtnAnswer.Enabled := True
