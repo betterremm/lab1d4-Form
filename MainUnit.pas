@@ -59,16 +59,14 @@ Type
         Procedure EditChange(Sender: TObject);
         Procedure BtnArrClick(Sender: TObject);
     Private
-        FirstFillAmnt: Integer;
-        SecondFillAmnt: Integer;
-        IsFileSaved: Boolean;
+        IsFirstFilled, IsSecondFilled, IsFileSaved: Boolean;
         FirstAnswerArray: Array Of Integer;
         SecondAnswerArray: Array Of Integer;
 
     End;
 
 Const
-    TAllowedKeys: Set Of Char = ['0' .. '9', #8, '-'];
+    TAllowedKeys: Set Of Char = ['0' .. '9', #8, '-', #13];
     TAllowedAmnt: Set Of Char = ['0' .. '9', #8];
     MAXAMOUNT = 30;
     MAXNUM = 10000000;
@@ -81,14 +79,22 @@ Implementation
 
 {$R *.dfm}
 
-Procedure CheckSG(Const SGNum: Byte; ACol, ARow: LongInt; Value: String);
+Function CheckFullSG(SGArr: TStringGrid): Boolean;
 Var
-    InpEdit: TCustomEdit;
+    I: Integer;
+Begin
+    CheckFullSG := True;
+    For I := 1 To SgArr.ColCount - 1 Do
+        If (SGArr.Cells[I, 1] = '') Or (SGArr.Cells[I, 1] = '-') Then
+            CheckFullSG := False;
+End;
+
+Function CheckSG(Const SGNum: Byte; Var Value: String): Boolean;
+Var
     I, CursorPos: Integer;
     IsRight: Boolean;
 Begin
-    InpEdit := TCustomEdit(TCustomGridAccess(MainForm.SGSecArr).InplaceEditor);
-    CursorPos := InpEdit.SelStart;
+
     MainForm.SGAnswer.Visible := False;
     MainForm.NSave.Enabled := False;
     IsRight := True;
@@ -101,37 +107,44 @@ Begin
                 IsRight := False;
             End;
         If IsRight Then
-            if Value[1] = '0' Then
+            If (Value[1] = '0') Or (Value[1] = '-') And (Value[2] = '0') Then
             Begin
                 Delete(Value, 1, 1);
                 IsRight := False;
             End
-            Else If StrToInt(Value) > MAXNUM Then
-            Begin
-                Value := IntToStr(MAXNUM);
-                IsRight := False
-            End
-            Else If StrToInt(Value) < MINNUM Then
-            Begin
-                Value := IntToStr(MINNUM);
-                IsRight := False
-            End
-
+            Else
+                If StrToInt(Value) > MAXNUM Then
+                Begin
+                    Value := IntToStr(MAXNUM);
+                    IsRight := False
+                End
+                Else
+                    If StrToInt(Value) < MINNUM Then
+                    Begin
+                        Value := IntToStr(MINNUM);
+                        IsRight := False
+                    End
 
     End;
-    If Not IsRight Then
-    Begin
-        InpEdit.Text := Value;
-        InpEdit.SelStart :=  CursorPos
-    End;
-
+    CheckSG := Not IsRight
 End;
 
 Procedure TMainForm.BtnAnswerClick(Sender: TObject);
 Var
-    TempNum, I, K, D: Integer;
+    I, N: Integer;
 Begin
 
+    SGAnswer.ColCount := SGFirstArr.ColCount;
+    N := SGAnswer.ColCount - 1;
+    For I := 1 To N Do
+    Begin
+        SGAnswer.Cells[I, 0] := IntToStr(I) + 'й';
+        SGAnswer.Cells[I, 1] := IntToStr(StrToInt(SGFirstArr.Cells[I, 1]) + StrToInt(SGSecArr.Cells[I, 1]));
+        SGAnswer.Cells[I, 2] := IntToStr(StrToInt(SGFirstArr.Cells[I, 1]) - StrToInt(SGSecArr.Cells[I, 1]));
+    End;
+
+    SGAnswer.Visible := True;
+    NSave.Enabled := True
 End;
 
 Procedure TMainForm.BtnArrClick(Sender: TObject);
@@ -222,11 +235,13 @@ Begin
     NSave.Enabled := False;
     SGAnswer.Visible := False;
     SGAnswer.Enabled := True;
-    FirstFillAmnt := 0;
-    SecondFillAmnt := 0;
+    IsFirstFilled := False;
+    IsSecondFilled := False;
     BtnArr.Enabled := False;
     SGFirstArr.Visible := False;
     SGSecArr.Visible := False;
+    SGAnswer.Cells[0, 1] := 'Новый a';
+    SGAnswer.Cells[0, 2] := 'Новый b'
 End;
 
 Function TMainForm.FormHelp(Command: Word; Data: THelpEventData; Var CallHelp: Boolean): Boolean;
@@ -370,13 +385,20 @@ Begin
 End;
 
 Procedure TMainForm.SGFirstArrSetEditText(Sender: TObject; ACol, ARow: LongInt; Const Value: String);
+Var
+    NewValue: String;
 Begin
+    NewValue := Value;
+    If CheckSG(1, NewValue) Then
+        SGFirstArr.Cells[ACol, ARow] := NewValue
+    Else
+        If (Value <> '') And (Value <> '-') And CheckFullSg(SGFirstArr) Then
+            IsFirstFilled := True;
 
-    CheckSG(1, ACol, ARow, Value);
-    If (FirstFillAmnt = SGFirstArr.ColCount - 1) And (SecondFillAmnt = SGSecArr.ColCount - 1) Then
-    Begin
-        BtnAnswer.Enabled := True;
-    End;
+    If IsFirstFilled And IsSecondFilled Then
+        BtnAnswer.Enabled := True
+    Else
+        BtnAnswer.Enabled := False
 
 End;
 
@@ -393,58 +415,20 @@ End;
 
 Procedure TMainForm.SGSecArrSetEditText(Sender: TObject; ACol, ARow: LongInt; Const Value: String);
 Var
-    InpEdit: TCustomEdit;
-    I, Num, CursorPos: Integer;
-    IsRight: Boolean;
+    NewValue: String;
+    IsBlank, WasBlank: Boolean;
 Begin
-    InpEdit := TCustomEdit(TCustomGridAccess(SGSecArr).InplaceEditor);
-    CursorPos := InpEdit.SelStart;
-    If Value.Length > 1 Then
-    Begin
-        For I := 2 To Value.Length Do
-            If Value[I] = '-' Then
-            Begin
-                SGSecArr.Cells[Acol, ARow] := SGSecArr.Cells[Acol, ARow];
-                InpEdit.SelStart := CursorPos;
-                IsRight := False;
-            End;
-        If IsRight And (IntToStr(StrToInt(Value)) = Value) Then
-        Begin
-            If (SGSecArr.Cells[Acol, ARow] = '-') Then
-                Inc(SecondFillAmnt);
-            Num := StrToInt(Value);
-            If (Num > MAXNUM) Then
-            Begin
-                SGSecArr.Cells[Acol, ARow] := IntToStr(MAXNUM);
-                InpEdit.SelStart := CursorPos
-            End
-            Else If Num < MINNUM Then
-            Begin
-                SGSecArr.Cells[Acol, ARow] := IntToStr(MINNUM);
-                InpEdit.SelStart := CursorPos
-            End;
-        End
-        Else If IsRight Then
-        Begin
-            SGSecArr.Cells[Acol, ARow] := SGSecArr.Cells[Acol, ARow];
-            InpEdit.SelStart := CursorPos
-        End;
+    NewValue := Value;
+    If CheckSG(1, NewValue) Then
+        SGSecArr.Cells[ACol, ARow] := NewValue
+    Else
+        If (Value <> '') And (Value <> '-') And CheckFullSg(SGSecArr) Then
+            IsSecondFilled := True;
 
-        
-
-    End;
-    InpEdit.SelStart := CursorPos;
-
-
-
-
-
-
-
-
-
-    If (SecondFillAmnt = SGSecArr.ColCount - 1) And (FirstFillAmnt = SGFirstArr.ColCount - 1) Then
-        BtnAnswer.Enabled := True;
+    If IsSecondFilled And IsFirstFilled Then
+        BtnAnswer.Enabled := True
+    Else
+        BtnAnswer.Enabled := False
 End;
 
 End.
