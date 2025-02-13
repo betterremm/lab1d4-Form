@@ -19,6 +19,8 @@ Uses
     Vcl.Grids;
 
 Type
+    TCustomGridAccess = Class(TCustomGrid);
+
     TMainForm = Class(TForm)
         MainMenu: TMainMenu;
         NFile: TMenuItem;
@@ -54,8 +56,8 @@ Type
         Procedure SGSecArrSetEditText(Sender: TObject; ACol, ARow: LongInt; Const Value: String);
         Procedure SGFirstArrSetEditText(Sender: TObject; ACol, ARow: LongInt; Const Value: String);
         Procedure EditKeyPress(Sender: TObject; Var Key: Char);
-    procedure EditChange(Sender: TObject);
-    procedure BtnArrClick(Sender: TObject);
+        Procedure EditChange(Sender: TObject);
+        Procedure BtnArrClick(Sender: TObject);
     Private
         FirstFillAmnt: Integer;
         SecondFillAmnt: Integer;
@@ -79,6 +81,52 @@ Implementation
 
 {$R *.dfm}
 
+Procedure CheckSG(Const SGNum: Byte; ACol, ARow: LongInt; Value: String);
+Var
+    InpEdit: TCustomEdit;
+    I, CursorPos: Integer;
+    IsRight: Boolean;
+Begin
+    InpEdit := TCustomEdit(TCustomGridAccess(MainForm.SGSecArr).InplaceEditor);
+    CursorPos := InpEdit.SelStart;
+    MainForm.SGAnswer.Visible := False;
+    MainForm.NSave.Enabled := False;
+    IsRight := True;
+    If Value.Length > 1 Then
+    Begin
+        For I := 2 To Value.Length Do
+            If Value[I] = '-' Then
+            Begin
+                Delete(Value, I, 1);
+                IsRight := False;
+            End;
+        If IsRight Then
+            if Value[1] = '0' Then
+            Begin
+                Delete(Value, 1, 1);
+                IsRight := False;
+            End
+            Else If StrToInt(Value) > MAXNUM Then
+            Begin
+                Value := IntToStr(MAXNUM);
+                IsRight := False
+            End
+            Else If StrToInt(Value) < MINNUM Then
+            Begin
+                Value := IntToStr(MINNUM);
+                IsRight := False
+            End
+
+
+    End;
+    If Not IsRight Then
+    Begin
+        InpEdit.Text := Value;
+        InpEdit.SelStart :=  CursorPos
+    End;
+
+End;
+
 Procedure TMainForm.BtnAnswerClick(Sender: TObject);
 Var
     TempNum, I, K, D: Integer;
@@ -86,35 +134,29 @@ Begin
 
 End;
 
-procedure TMainForm.BtnArrClick(Sender: TObject);
+Procedure TMainForm.BtnArrClick(Sender: TObject);
 Var
-Size, I : Integer;
-begin
+    Size, I: Integer;
+Begin
     SGFirstArr.Visible := True;
     SGSecArr.Visible := True;
     Size := StrToInt(Edit.Text);
     SGFirstArr.ColCount := Size + 1;
     SGSecArr.ColCount := Size + 1;
-    SGFirstArr.Cells[0,0] := 'a';
-    SGFirstArr.Cells[0,1] := 'Значение:';
+    SGFirstArr.Cells[0, 0] := 'a';
+    SGFirstArr.Cells[0, 1] := 'Значение:';
     For I := 1 To Size Do
-        SGFirstArr.Cells[I,0] := IntToStr(I) + '-й';
+        SGFirstArr.Cells[I, 0] := IntToStr(I) + '-й';
 
-
-    SGSecArr.Cells[0,0] := 'b';
-    SGSecArr.Cells[0,1] := 'Значение:';
+    SGSecArr.Cells[0, 0] := 'b';
+    SGSecArr.Cells[0, 1] := 'Значение:';
     For I := 1 To Size Do
-        SGSecArr.Cells[I,0] := IntToStr(I) + '-й';
+        SGSecArr.Cells[I, 0] := IntToStr(I) + '-й';
 
+End;
 
-
-
-
-
-end;
-
-procedure TMainForm.EditChange(Sender: TObject);
-begin
+Procedure TMainForm.EditChange(Sender: TObject);
+Begin
 
     If (Edit.Text <> '') And (Edit.Text <> '0') Then
     Begin
@@ -133,7 +175,7 @@ begin
     End
     Else
         BtnArr.Enabled := False;
-end;
+End;
 
 Procedure TMainForm.EditKeyPress(Sender: TObject; Var Key: Char);
 Begin
@@ -330,29 +372,7 @@ End;
 Procedure TMainForm.SGFirstArrSetEditText(Sender: TObject; ACol, ARow: LongInt; Const Value: String);
 Begin
 
-    SGAnswer.Visible := False;
-    NSave.Enabled := False;
-    If (Value <> '') And (Value <> '-') Then
-    Begin
-        If (SGSecArr.Cells[ACol, ARow] = '') Or (SGSecArr.Cells[ACol, ARow] = '-') Then
-            Inc(FirstFillAmnt);
-
-        If StrToInt(Value) > MAXNUM Then
-            SGFirstArr.Cells[ACol, ARow] := IntToStr(MAXNUM)
-
-        Else
-            If StrToInt(Value) < MINNUM Then
-                SGFirstArr.Cells[ACol, ARow] := IntToStr(MINNUM)
-
-            Else
-                If IntToStr(StrToInt(Value)) <> Value Then
-                    SGFirstArr.Cells[ACol, ARow] := IntToStr(StrToInt(Value));
-
-    End
-    Else
-        If (SGFirstArr.Cells[ACol, ARow] <> '') And (SGFirstArr.Cells[ACol, ARow] <> '-') Then
-            Dec(FirstFillAmnt);
-
+    CheckSG(1, ACol, ARow, Value);
     If (FirstFillAmnt = SGFirstArr.ColCount - 1) And (SecondFillAmnt = SGSecArr.ColCount - 1) Then
     Begin
         BtnAnswer.Enabled := True;
@@ -373,41 +393,58 @@ End;
 
 Procedure TMainForm.SGSecArrSetEditText(Sender: TObject; ACol, ARow: LongInt; Const Value: String);
 Var
-A: Integer;
+    InpEdit: TCustomEdit;
+    I, Num, CursorPos: Integer;
+    IsRight: Boolean;
 Begin
-
-    SGAnswer.Visible := False;
-    NSave.Enabled := False;
-    If (Value <> '') And (Value <> '-') Then
+    InpEdit := TCustomEdit(TCustomGridAccess(SGSecArr).InplaceEditor);
+    CursorPos := InpEdit.SelStart;
+    If Value.Length > 1 Then
     Begin
-        {$I-}
-        If (IntToStr(StrToInt(Value)) = Value) {$I+} And (IOResult = 0) Then
-
+        For I := 2 To Value.Length Do
+            If Value[I] = '-' Then
+            Begin
+                SGSecArr.Cells[Acol, ARow] := SGSecArr.Cells[Acol, ARow];
+                InpEdit.SelStart := CursorPos;
+                IsRight := False;
+            End;
+        If IsRight And (IntToStr(StrToInt(Value)) = Value) Then
         Begin
-
-        If (SGSecArr.Cells[ACol, ARow] = '') Or (SGSecArr.Cells[ACol, ARow] = '-') Then
-            Inc(SecondFillAmnt);
-
-        If StrToInt(Value) > MAXNUM Then
-            SGSecArr.Cells[ACol, ARow] := IntToStr(MAXNUM)
-
-        Else
-            If StrToInt(Value) < MINNUM Then
-                SGSecArr.Cells[ACol, ARow] := IntToStr(MINNUM)
-
-            Else
-                If IntToStr(StrToInt(Value)) <> Value Then
-                    SGSecArr.Cells[ACol, ARow] := IntToStr(StrToInt(Value));
+            If (SGSecArr.Cells[Acol, ARow] = '-') Then
+                Inc(SecondFillAmnt);
+            Num := StrToInt(Value);
+            If (Num > MAXNUM) Then
+            Begin
+                SGSecArr.Cells[Acol, ARow] := IntToStr(MAXNUM);
+                InpEdit.SelStart := CursorPos
+            End
+            Else If Num < MINNUM Then
+            Begin
+                SGSecArr.Cells[Acol, ARow] := IntToStr(MINNUM);
+                InpEdit.SelStart := CursorPos
+            End;
+        End
+        Else If IsRight Then
+        Begin
+            SGSecArr.Cells[Acol, ARow] := SGSecArr.Cells[Acol, ARow];
+            InpEdit.SelStart := CursorPos
         End;
 
-    End
-    Else
-        If (SGSecArr.Cells[ACol, ARow] <> '') And (SGSecArr.Cells[ACol, ARow] <> '-') Then
-            Dec(SecondFillAmnt);
+        
 
-    If (SecondFillAmnt = SGSecArr.ColCount - 1) And (FirstFillAmnt = SGFirstArr.ColCount - 1)Then
+    End;
+    InpEdit.SelStart := CursorPos;
+
+
+
+
+
+
+
+
+
+    If (SecondFillAmnt = SGSecArr.ColCount - 1) And (FirstFillAmnt = SGFirstArr.ColCount - 1) Then
         BtnAnswer.Enabled := True;
-
-
 End;
+
 End.
