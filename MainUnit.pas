@@ -48,7 +48,6 @@ Type
         Function FormHelp(Command: Word; Data: THelpEventData; Var CallHelp: Boolean): Boolean;
         Procedure BtnAnswerClick(Sender: TObject);
         Procedure NOpenClick(Sender: TObject);
-        Procedure SGFirstArrContextPopup(Sender: TObject; MousePos: TPoint; Var Handled: Boolean);
         Procedure SGSecArrContextPopup(Sender: TObject; MousePos: TPoint; Var Handled: Boolean);
         Procedure SGFirstArrKeyPress(Sender: TObject; Var Key: Char);
         Procedure SGSecArrKeyPress(Sender: TObject; Var Key: Char);
@@ -58,10 +57,16 @@ Type
         Procedure EditChange(Sender: TObject);
         Procedure BtnArrClick(Sender: TObject);
         Procedure EditContextPopup(Sender: TObject; MousePos: TPoint; Var Handled: Boolean);
+        Procedure SGFirstArrKeyDown(Sender: TObject; Var Key: Word; Shift: TShiftState);
+        Procedure SGSecArrKeyDown(Sender: TObject; Var Key: Word; Shift: TShiftState);
+    procedure ArrGetEditMask(Sender: TObject; ACol, ARow: LongInt;
+      var Value: string);
     Private
         IsFirstFilled, IsSecondFilled, IsFileSaved: Boolean;
         FirstAnswerArray: Array Of Integer;
         SecondAnswerArray: Array Of Integer;
+        SGTemp: TStringGrid;
+        AColTemp, ARowTemp: LongInt;
 
     End;
 
@@ -92,44 +97,58 @@ End;
 
 Function CheckSG(Const SGNum: Byte; Var Value: String): Boolean;
 Var
-    I, CursorPos: Integer;
-    IsRight: Boolean;
+    TempNum, I, CursorPos: Integer;
+    IsRight, IsPasted: Boolean;
 Begin
+    ExitCode := MessageBox(MainForm.Handle, 'Желаете сохранить?', 'Вы не сохранили данные.', MB_ICONQUESTION + MB_YESNOCANCEL);
 
-    MainForm.SGAnswer.Visible := False;
-    MainForm.NSave.Enabled := False;
-    IsRight := True;
-    If Value.Length > 1 Then
-    Begin
-        For I := 2 To Value.Length Do
-            If Value[I] = '-' Then
-            Begin
-                Delete(Value, I, 1);
-                IsRight := False;
-            End;
-        If IsRight Then
-            If (Value[1] = '0') Or (Value[1] = '-') And (Value[2] = '0') Then
-            Begin
-                Delete(Value, 1, 1);
-                Value := IntToStr(StrToInt(Value));
-                IsRight := False;
-            End
-            Else
-                If StrToInt(Value) > MAXNUM Then
-                Begin
-                    Value := IntToStr(MAXNUM);
-                    IsRight := False
-                End
-                Else
-                    If StrToInt(Value) < MINNUM Then
-                    Begin
-                        Value := IntToStr(MINNUM);
-                        IsRight := False
-                    End
 
-    End;
-    CheckSG := Not IsRight
+
+
+
+//
+//    MainForm.SGAnswer.Visible := False;
+//    MainForm.NSave.Enabled := False;
+//    IsRight := True;
+//
+//    If Value.Length > 1 Then
+//    Begin
+//        For I := 2 To Value.Length Do
+//            If Value[I] = '-' Then
+//            Begin
+//                Delete(Value, I, 1);
+//                IsRight := False;
+//            End;
+//        If IsRight Then
+//            If (Value[1] = '0') Or (Value[1] = '-') And (Value[2] = '0') Then
+//            Begin
+//                Delete(Value, 1, 1);
+//                Value := IntToStr(StrToInt(Value));
+//                IsRight := False;
+//            End
+//            Else
+//                If StrToInt(Value) > MAXNUM Then
+//                Begin
+//                    Value := IntToStr(MAXNUM);
+//                    IsRight := False
+//                End
+//                Else
+//                    If StrToInt(Value) < MINNUM Then
+//                    Begin
+//                        Value := IntToStr(MINNUM);
+//                        IsRight := False
+//                    End
+//
+//    End;
+//
+//    CheckSG := Not IsRight
 End;
+
+procedure TMainForm.ArrGetEditMask(Sender: TObject; ACol, ARow: LongInt;
+  var Value: string);
+begin
+    Value := '!#9999999;1;'
+end;
 
 Procedure TMainForm.BtnAnswerClick(Sender: TObject);
 Var
@@ -214,7 +233,7 @@ Begin
     If SGAnswer.Visible And (IsFileSaved = False) Then
         Repeat
 
-            ExitCode := MessageBox(MainForm.Handle, 'Вы не сохранили данные.', 'Желаете сохранить?', MB_ICONQUESTION + MB_YESNOCANCEL);
+            ExitCode := MessageBox(MainForm.Handle, 'Желаете сохранить?', 'Вы не сохранили данные.', MB_ICONQUESTION + MB_YESNOCANCEL);
             If ExitCode = ID_Yes Then
             Begin
                 NSaveClick(MainForm);
@@ -254,7 +273,7 @@ Begin
     SGSecArr.Visible := False;
     SGAnswer.Cells[0, 1] := 'Новый a';
     SGAnswer.Cells[0, 2] := 'Новый b';
-//    SGFirstArr.OnSelectCell := @DisableEditorContextMenu;
+    //SGFirstArr.OnSelectCell := @DisableEditorContextMenu;
 End;
 
 Function TMainForm.FormHelp(Command: Word; Data: THelpEventData; Var CallHelp: Boolean): Boolean;
@@ -305,23 +324,23 @@ Begin
                 If EOF(InputFile) Then
                     Inc(EofCounter);
                 Edit.Text := IntToStr(NumSize);
-                if BtnArr.Enabled then
+                If BtnArr.Enabled Then
                     BtnArr.Click;
 
                 For I := 1 To SGFirstArr.ColCount - 1 Do
                 Begin
-                Read(InputFile, NumTemp);
-                If EOF(InputFile) Then
-                    Inc(EofCounter);
-                SgFirstArr.Cells[I,1] := IntToStr(NumTemp)
+                    Read(InputFile, NumTemp);
+                    If EOF(InputFile) Then
+                        Inc(EofCounter);
+                    SgFirstArr.Cells[I, 1] := IntToStr(NumTemp)
                 End;
 
                 For I := 1 To SGSecArr.ColCount - 1 Do
                 Begin
-                Read(InputFile, NumTemp);
-                If EOF(InputFile) Then
-                    Inc(EofCounter);
-                SGSecArr.Cells[I,1] := IntToStr(NumTemp)
+                    Read(InputFile, NumTemp);
+                    If EOF(InputFile) Then
+                        Inc(EofCounter);
+                    SGSecArr.Cells[I, 1] := IntToStr(NumTemp)
                 End;
 
                 {$I+}
@@ -414,15 +433,19 @@ Begin
     End;
 End;
 
-Procedure TMainForm.SGFirstArrContextPopup(Sender: TObject; MousePos: TPoint; Var Handled: Boolean);
+Procedure TMainForm.SGFirstArrKeyDown(Sender: TObject; Var Key: Word; Shift: TShiftState);
 Begin
-    Handled := True
+    If (SsShift In Shift) Then
+    Begin
+        Key := 0;
+    End;
+
 End;
 
 Procedure TMainForm.SGFirstArrKeyPress(Sender: TObject; Var Key: Char);
 Begin
-    If Not(Key In TAllowedKeys) Then
-        Key := #0;
+//    If Not(Key In TAllowedKeys) Then
+//        Key := #0;
 
 End;
 
@@ -430,18 +453,18 @@ Procedure TMainForm.SGFirstArrSetEditText(Sender: TObject; ACol, ARow: LongInt; 
 Var
     NewValue: String;
 Begin
-    NewValue := Value;
-    If CheckSG(1, NewValue) Then
-        SGFirstArr.Cells[ACol, ARow] := NewValue;
-    If (Value <> '') And (Value <> '-') And CheckFullSg(SGFirstArr) Then
-        IsFirstFilled := True
-    Else
-        IsFirstFilled := False;
-
-    If IsFirstFilled And IsSecondFilled Then
-        BtnAnswer.Enabled := True
-    Else
-        BtnAnswer.Enabled := False
+//    NewValue := Value;
+//    If CheckSG(1, NewValue) Then
+//        SGFirstArr.Cells[ACol, ARow] := NewValue;
+//    If (Value <> '') And (Value <> '-') And CheckFullSg(SGFirstArr) Then
+//        IsFirstFilled := True
+//    Else
+//        IsFirstFilled := False;
+//
+//    If IsFirstFilled And IsSecondFilled Then
+//        BtnAnswer.Enabled := True
+//    Else
+//        BtnAnswer.Enabled := False
 
 End;
 
@@ -450,10 +473,16 @@ Begin
     Handled := True
 End;
 
+Procedure TMainForm.SGSecArrKeyDown(Sender: TObject; Var Key: Word; Shift: TShiftState);
+Begin
+    If SsShift In Shift Then
+        Key := 0
+End;
+
 Procedure TMainForm.SGSecArrKeyPress(Sender: TObject; Var Key: Char);
 Begin
-    If Not(Key In TAllowedKeys) Then
-        Key := #0
+//    If Not(Key In TAllowedKeys) Then
+//        Key := #0
 End;
 
 Procedure TMainForm.SGSecArrSetEditText(Sender: TObject; ACol, ARow: LongInt; Const Value: String);

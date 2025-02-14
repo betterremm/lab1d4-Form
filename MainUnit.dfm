@@ -67,9 +67,10 @@ object MainForm: TMainForm
     Width = 121
     Height = 23
     TabOrder = 0
-    TextHint = '1-30'
+    TextHint = '1..30'
     OnChange = EditChange
     OnContextPopup = EditContextPopup
+    OnKeyDown = SGFirstArrKeyDown
     OnKeyPress = EditKeyPress
   end
   object SGFirstArr: TStringGrid
@@ -81,7 +82,8 @@ object MainForm: TMainForm
     Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goEditing, goFixedRowDefAlign]
     ScrollBars = ssHorizontal
     TabOrder = 2
-    OnContextPopup = SGFirstArrContextPopup
+    OnGetEditMask = ArrGetEditMask
+    OnKeyDown = SGFirstArrKeyDown
     OnKeyPress = SGFirstArrKeyPress
     OnSetEditText = SGFirstArrSetEditText
     ColWidths = (
@@ -101,6 +103,7 @@ object MainForm: TMainForm
     ScrollBars = ssHorizontal
     TabOrder = 3
     OnContextPopup = SGSecArrContextPopup
+    OnKeyDown = SGSecArrKeyDown
     OnKeyPress = SGSecArrKeyPress
     OnSetEditText = SGSecArrSetEditText
     ColWidths = (
