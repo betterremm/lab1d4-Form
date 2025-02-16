@@ -82,7 +82,6 @@ object MainForm: TMainForm
     Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goEditing, goFixedRowDefAlign]
     ScrollBars = ssHorizontal
     TabOrder = 2
-    OnGetEditMask = ArrGetEditMask
     OnKeyDown = SGFirstArrKeyDown
     OnKeyPress = SGFirstArrKeyPress
     OnSetEditText = SGFirstArrSetEditText
